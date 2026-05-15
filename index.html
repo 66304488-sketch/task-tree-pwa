@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="完成任务攒积分，让树长大开花！">
+<meta name="theme-color" content="#88d8b0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="任务积分树">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<title>🌳 任务积分树</title>
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(180deg, #e0f7ff 0%, #f0fdf4 50%, #fefce8 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+}
+
+.app {
+  width: 100%;
+  max-width: 420px;
+  background: #fffef9;
+  border-radius: 28px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 90vh;
+}
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, #a8e6cf, #88d8b0);
+  padding: 12px 20px;
+  text-align: center;
+  position: relative;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-title {
+  flex: 1;
+  text-align: center;
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #2d5a3d;
+  letter-spacing: 0.05em;
+}
+.header-info {
+  font-size: 0.85em;
+  color: #3d7a52;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.header-info .stage-icon {
+  font-size: 1.2em;
+  display: inline-block;
+  animation: bounce-icon 1.5s ease-in-out infinite;
+}
+@keyframes bounce-icon {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+  50% { transform: translateY(0); }
+  70% { transform: translateY(-3px); }
+}
+.header-streak {
+  font-size: 0.7em;
+  background: rgba(255,255,255,0.6);
+  padding: 3px 10px;
+  border-radius: 12px;
+  color: #c79100;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.header-photo {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2px solid white;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+.header-photo-placeholder {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255,255,255,0.8);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ===== Tree Display ===== */
+.tree-area {
+  flex: 0 0 175px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px 28px;
+  background: linear-gradient(180deg, #d4f0ff 0%, #e8f8e0 40%, #f5ecd7 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sky elements */
+.tree-area::before {
+  content: '';
+  position: absolute;
+  top: 10px; right: 30px;
+  width: 50px; height: 50px;
+  background: radial-gradient(circle, #ffe066 40%, #ffcc02 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 30px #ffe066;
+  animation: sun-glow 3s ease-in-out infinite;
+}
+@keyframes sun-glow {
+  0%, 100% { box-shadow: 0 0 30px #ffe066; }
+  50% { box-shadow: 0 0 50px #ffe066, 0 0 80px rgba(255,224,102,0.5); }
+}
+
+/* Clouds */
+.cloud {
+  position: absolute;
+  background: white;
+  border-radius: 50px;
+  opacity: 0.8;
+}
+.cloud::before, .cloud::after {
+  content: '';
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+}
+.cloud-1 {
+  width: 60px; height: 22px; top: 15px; left: 20px;
+  animation: cloud-drift 8s ease-in-out infinite;
+}
+.cloud-1::before { width: 28px; height: 28px; top: -14px; left: 12px; }
+.cloud-1::after { width: 22px; height: 22px; top: -9px; left: 30px; }
+.cloud-2 {
+  width: 45px; height: 16px; top: 30px; right: 25px;
+  animation: cloud-drift 10s ease-in-out infinite 2s;
+}
+.cloud-2::before { width: 20px; height: 20px; top: -10px; left: 8px; }
+.cloud-2::after { width: 16px; height: 16px; top: -7px; left: 22px; }
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(15px); }
+}
+
+/* ===== Tree Container ===== */
+.tree-container {
+  position: relative;
+  width: 130px;
+  height: 140px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1;
+}
+.tree-scene {
+  position: relative;
+  width: 200px;
+  height: 220px;
+  transform: scale(0.63);
+  transform-origin: center bottom;
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Ground */
+.ground {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 26px;
+  background: linear-gradient(180deg, #c8a96e 0%, #a0845c 100%);
+  border-radius: 50%;
+  z-index: 2;
+}
+.ground-grass {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 12px;
+  background: linear-gradient(180deg, #7bc67e, #5da85f);
+  border-radius: 50%;
+  z-index: 3;
+}
+
+/* ===== Progress Overlay ===== */
+.tree-progress {
+  position: absolute;
+  bottom: 6px;
+  left: 20px;
+  right: 20px;
+  z-index: 10;
+}
+.progress-bar-outer {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+.progress-bar-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #a8e6cf, #56c596, #3d8b40);
+  border-radius: 8px;
+  transition: width 1s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+  position: relative;
+}
+.progress-bar-inner::after {
+  content: '';
+  position: absolute;
+  top: 1px; left: 4px; right: 4px; height: 3px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent);
+  border-radius: 2px;
+}
+
+/* ===== Stage 1: Seed ===== */
+.tree-stage-1 .seed {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px; height: 32px;
+  background: radial-gradient(ellipse at 40% 35%, #c8944a, #8B6914);
+  border-radius: 50% 50% 45% 45%;
+  z-index: 4;
+  animation: seed-pulse 2s ease-in-out infinite;
+}
+@keyframes seed-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+.tree-stage-1 .seed-crack {
+  position: absolute;
+  bottom: 38px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 6px;
+  background: #6b4f1a;
+  border-radius: 1px;
+  z-index: 5;
+}
+
+/* ===== Stage 2: Sprout ===== */
+.tree-stage-2 .sprout-stem {
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px; height: 40px;
+  background: linear-gradient(180deg, #6dbd6e, #4a9e4b);
+  border-radius: 3px 3px 0 0;
+  z-index: 4;
+}
+.tree-stage-2 .sprout-leaf {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  width: 18px; height: 10px;
+  background: #6dbd6e;
+  border-radius: 50% 50% 0 50%;
+  z-index: 5;
+  transform-origin: bottom right;
+  animation: leaf-sway 3s ease-in-out infinite;
+}
+.tree-stage-2 .sprout-leaf-right {
+  bottom: 74px;
+  border-radius: 50% 50% 50% 0;
+  transform-origin: bottom left;
+  animation-delay: 0.5s;
+}
+@keyframes leaf-sway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+/* ===== Stage 3: Seedling ===== */
+.tree-stage-3 .seedling-stem {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px; height: 55px;
+  background: linear-gradient(180deg, #7bc67e, #4a9e4b);
+  border-radius: 4px 4px 2px 2px;
+  z-index: 4;
+}
+.tree-stage-3 .seedling-leaf {
+  position: absolute;
+  width: 22px; height: 12px;
+  background: #6dbd6e;
+  border-radius: 50% 50% 0 50%;
+  z-index: 5;
+  animation: leaf-sway 3s ease-in-out infinite;
+}
+.tree-stage-3 .seedling-leaf-1 { bottom: 74px; left: calc(50% - 14px); transform-origin: bottom right; }
+.tree-stage-3 .seedling-leaf-2 { bottom: 78px; left: calc(50% - 2px); border-radius: 50% 50% 50% 0; transform-origin: bottom left; animation-delay: 0.4s; }
+.tree-stage-3 .seedling-leaf-3 { bottom: 60px; left: calc(50% - 16px); width: 16px; height: 9px; transform-origin: bottom right; animation-delay: 0.8s; }
+.tree-stage-3 .seedling-leaf-4 { bottom: 64px; left: calc(50% + 2px); width: 16px; height: 9px; border-radius: 50% 50% 50% 0; transform-origin: bottom left; animation-delay: 1.2s; }
+.tree-stage-3 .seedling-bud {
+  position: absolute;
+  bottom: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px; height: 10px;
+  background: radial-gradient(circle, #a8e6a0, #56c596);
+  border-radius: 50% 50% 30% 30%;
+  z-index: 6;
+  animation: bud-glow 2s ease-in-out infinite;
+}
+@keyframes bud-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(86,197,150,0.4); }
+  50% { box-shadow: 0 0 15px rgba(86,197,150,0.7); }
+}
+
+/* ===== Stage 4: Small Tree ===== */
+.tree-stage-4 .trunk {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px; height: 50px;
+  background: linear-gradient(180deg, #b8860b, #8B6914);
+  border-radius: 7px 7px 4px 4px;
+  z-index: 4;
+}
+.tree-stage-4 .canopy {
+  position: absolute;
+  bottom: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px; height: 60px;
+  background: radial-gradient(ellipse at 50% 60%, #5cb85c, #3d8b3d);
+  border-radius: 50%;
+  z-index: 5;
+  box-shadow: 0 0 20px rgba(76,175,80,0.3);
+}
+.tree-stage-4 .canopy-detail {
+  position: absolute;
+  bottom: 65px;
+  left: calc(50% - 20px);
+  width: 40px; height: 40px;
+  background: radial-gradient(circle, #6cc96c, transparent 60%);
+  border-radius: 50%;
+  z-index: 6;
+}
+
+/* ===== Stage 5: Big Tree ===== */
+.tree-stage-5 .trunk {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px; height: 65px;
+  background: linear-gradient(180deg, #c8944a, #8B6914);
+  border-radius: 10px 10px 5px 5px;
+  z-index: 4;
+}
+.tree-stage-5 .canopy-main {
+  position: absolute;
+  bottom: 65px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px; height: 80px;
+  background: radial-gradient(ellipse at 50% 60%, #4caf50, #2e7d32);
+  border-radius: 50%;
+  z-index: 5;
+  box-shadow: 0 4px 30px rgba(46,125,50,0.3);
+}
+.tree-stage-5 .canopy-left {
+  position: absolute;
+  bottom: 75px;
+  left: calc(50% - 55px);
+  width: 60px; height: 55px;
+  background: radial-gradient(ellipse at 60% 50%, #66bb6a, #388e3c);
+  border-radius: 50% 50% 40% 60%;
+  z-index: 4;
+}
+.tree-stage-5 .canopy-right {
+  position: absolute;
+  bottom: 72px;
+  left: calc(50% + 5px);
+  width: 55px; height: 50px;
+  background: radial-gradient(ellipse at 40% 50%, #5cb85c, #388e3c);
+  border-radius: 50% 50% 60% 40%;
+  z-index: 4;
+}
+.tree-stage-5 .canopy-top {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 55px; height: 50px;
+  background: radial-gradient(ellipse at 50% 70%, #81c784, #43a047);
+  border-radius: 50%;
+  z-index: 6;
+}
+
+/* ===== Stage 6: Lush Tree ===== */
+.tree-stage-6 .trunk {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px; height: 75px;
+  background: linear-gradient(180deg, #c8944a, #8B6914);
+  border-radius: 12px 12px 6px 6px;
+  z-index: 4;
+}
+.tree-stage-6 .canopy-main {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 115px; height: 90px;
+  background: radial-gradient(ellipse at 50% 60%, #4caf50, #2e7d32);
+  border-radius: 50%;
+  z-index: 5;
+  box-shadow: 0 6px 35px rgba(46,125,50,0.35);
+}
+.tree-stage-6 .canopy-left {
+  position: absolute;
+  bottom: 78px;
+  left: calc(50% - 65px);
+  width: 70px; height: 60px;
+  background: radial-gradient(ellipse at 60% 50%, #66bb6a, #388e3c);
+  border-radius: 50% 50% 40% 60%;
+  z-index: 4;
+}
+.tree-stage-6 .canopy-right {
+  position: absolute;
+  bottom: 75px;
+  left: calc(50% + 5px);
+  width: 65px; height: 55px;
+  background: radial-gradient(ellipse at 40% 50%, #5cb85c, #388e3c);
+  border-radius: 50% 50% 60% 40%;
+  z-index: 4;
+}
+.tree-stage-6 .canopy-top {
+  position: absolute;
+  bottom: 108px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65px; height: 55px;
+  background: radial-gradient(ellipse at 50% 70%, #81c784, #43a047);
+  border-radius: 50%;
+  z-index: 6;
+}
+.tree-stage-6 .canopy-top2 {
+  position: absolute;
+  bottom: 120px;
+  left: calc(50% - 10px);
+  width: 40px; height: 35px;
+  background: radial-gradient(ellipse at 50% 70%, #a5d6a7, #66bb6a);
+  border-radius: 50%;
+  z-index: 7;
+}
+.tree-stage-6 .bird {
+  position: absolute;
+  z-index: 8;
+  animation: bird-fly 4s ease-in-out infinite;
+}
+.tree-stage-6 .bird::before { content: '🐦'; font-size: 14px; }
+@keyframes bird-fly {
+  0% { top: 30px; left: 80px; transform: scaleX(1); }
+  25% { top: 20px; left: 110px; transform: scaleX(1); }
+  50% { top: 15px; left: 130px; transform: scaleX(-1); }
+  75% { top: 25px; left: 100px; transform: scaleX(-1); }
+  100% { top: 30px; left: 80px; transform: scaleX(1); }
+}
+
+/* ===== Stage 7: Blooming Tree ===== */
+.tree-stage-7 .trunk {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px; height: 70px;
+  background: linear-gradient(180deg, #c8944a, #8B6914);
+  border-radius: 11px 11px 5px 5px;
+  z-index: 4;
+}
+.tree-stage-7 .canopy-main {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px; height: 85px;
+  background: radial-gradient(ellipse at 50% 60%, #4caf50, #2e7d32);
+  border-radius: 50%;
+  z-index: 5;
+  box-shadow: 0 6px 35px rgba(46,125,50,0.3);
+}
+.tree-stage-7 .canopy-left,
+.tree-stage-7 .canopy-right {
+  position: absolute;
+  bottom: 80px;
+  width: 65px; height: 58px;
+  background: radial-gradient(ellipse at 50% 50%, #66bb6a, #388e3c);
+  border-radius: 50% 50% 40% 60%;
+  z-index: 4;
+}
+.tree-stage-7 .canopy-left { left: calc(50% - 60px); }
+.tree-stage-7 .canopy-right {
+  left: calc(50% + 5px);
+  border-radius: 50% 50% 60% 40%;
+}
+.tree-stage-7 .canopy-top {
+  position: absolute;
+  bottom: 105px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px; height: 55px;
+  background: radial-gradient(ellipse at 50% 70%, #81c784, #43a047);
+  border-radius: 50%;
+  z-index: 6;
+}
+
+/* Flowers */
+.flower {
+  position: absolute;
+  width: 14px; height: 14px;
+  z-index: 7;
+  animation: flower-bob 2s ease-in-out infinite;
+}
+.flower::before {
+  content: '';
+  position: absolute;
+  width: 14px; height: 14px;
+  background: radial-gradient(circle, #ffb7c5, #ff6b8a);
+  border-radius: 50%;
+  box-shadow:
+    8px 0 0 -2px #ffb7c5,
+    -8px 0 0 -2px #ffb7c5,
+    0 8px 0 -2px #ffb7c5,
+    0 -8px 0 -2px #ffb7c5,
+    6px 6px 0 -2px #ffa0b4,
+    -6px 6px 0 -2px #ffa0b4,
+    6px -6px 0 -2px #ffa0b4,
+    -6px -6px 0 -2px #ffa0b4;
+}
+.flower::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 8px; height: 8px;
+  background: radial-gradient(circle, #ffe066, #ffcc02);
+  border-radius: 50%;
+}
+.flower-1 { top: 60px; left: 55px; animation-delay: 0s; }
+.flower-2 { top: 50px; left: 90px; animation-delay: 0.4s; }
+.flower-3 { top: 70px; left: 110px; animation-delay: 0.8s; }
+.flower-4 { top: 45px; left: 70px; animation-delay: 1.2s; }
+.flower-5 { top: 65px; left: 130px; animation-delay: 1.6s; }
+@keyframes flower-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-3px) rotate(5deg); }
+  60% { transform: translateY(1px) rotate(-3deg); }
+}
+
+/* Sparkles */
+.sparkle {
+  position: absolute;
+  width: 4px; height: 4px;
+  background: #ffe066;
+  border-radius: 50%;
+  z-index: 8;
+  animation: sparkle-float 1.5s ease-in-out infinite;
+}
+.sparkle-1 { top: 40px; left: 80px; animation-delay: 0s; }
+.sparkle-2 { top: 55px; left: 120px; animation-delay: 0.5s; }
+.sparkle-3 { top: 35px; left: 100px; animation-delay: 1s; }
+@keyframes sparkle-float {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 1; transform: translateY(-8px) scale(1.2); }
+}
+
+/* ===== Stage 8: Fruiting Tree ===== */
+.tree-stage-8 .trunk {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px; height: 72px;
+  background: linear-gradient(180deg, #c8944a, #8B6914);
+  border-radius: 12px 12px 5px 5px;
+  z-index: 4;
+}
+.tree-stage-8 .canopy-main {
+  position: absolute;
+  bottom: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 115px; height: 88px;
+  background: radial-gradient(ellipse at 50% 60%, #4caf50, #2e7d32);
+  border-radius: 50%;
+  z-index: 5;
+  box-shadow: 0 6px 38px rgba(46,125,50,0.35);
+}
+.tree-stage-8 .canopy-left {
+  position: absolute;
+  bottom: 82px;
+  left: calc(50% - 62px);
+  width: 68px; height: 58px;
+  background: radial-gradient(ellipse at 60% 50%, #66bb6a, #388e3c);
+  border-radius: 50% 50% 40% 60%;
+  z-index: 4;
+}
+.tree-stage-8 .canopy-right {
+  position: absolute;
+  bottom: 78px;
+  left: calc(50% + 3px);
+  width: 63px; height: 54px;
+  background: radial-gradient(ellipse at 40% 50%, #5cb85c, #388e3c);
+  border-radius: 50% 50% 60% 40%;
+  z-index: 4;
+}
+.tree-stage-8 .canopy-top {
+  position: absolute;
+  bottom: 108px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 63px; height: 55px;
+  background: radial-gradient(ellipse at 50% 70%, #81c784, #43a047);
+  border-radius: 50%;
+  z-index: 6;
+}
+.tree-stage-8 .fruit {
+  position: absolute;
+  width: 12px; height: 14px;
+  z-index: 8;
+  border-radius: 50% 50% 45% 45%;
+  animation: fruit-bob 2.5s ease-in-out infinite;
+}
+.tree-stage-8 .fruit::after {
+  content: '';
+  position: absolute;
+  top: -3px; left: 4px;
+  width: 4px; height: 4px;
+  background: #5d4037;
+  border-radius: 1px;
+}
+.tree-stage-8 .fruit-1 { top: 55px; left: 60px; background: radial-gradient(circle at 35% 30%, #ff6b6b, #c62828); animation-delay: 0s; }
+.tree-stage-8 .fruit-2 { top: 48px; left: 95px; background: radial-gradient(circle at 35% 30%, #ff8a65, #bf360c); animation-delay: 0.5s; }
+.tree-stage-8 .fruit-3 { top: 65px; left: 115px; background: radial-gradient(circle at 35% 30%, #ff6b6b, #c62828); animation-delay: 1s; }
+.tree-stage-8 .fruit-4 { top: 42px; left: 75px; background: radial-gradient(circle at 35% 30%, #ffab40, #e65100); animation-delay: 1.5s; }
+.tree-stage-8 .fruit-5 { top: 58px; left: 130px; background: radial-gradient(circle at 35% 30%, #ff6b6b, #c62828); animation-delay: 2s; }
+@keyframes fruit-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.tree-stage-8 .butterfly {
+  position: absolute;
+  z-index: 9;
+  animation: butterfly-flight 5s ease-in-out infinite;
+}
+.tree-stage-8 .butterfly::before { content: '🦋'; font-size: 16px; }
+@keyframes butterfly-flight {
+  0% { top: 35px; left: 50px; transform: scaleX(1) rotate(-5deg); }
+  25% { top: 25px; left: 90px; transform: scaleX(1) rotate(5deg); }
+  50% { top: 20px; left: 130px; transform: scaleX(-1) rotate(-3deg); }
+  75% { top: 30px; left: 70px; transform: scaleX(-1) rotate(3deg); }
+  100% { top: 35px; left: 50px; transform: scaleX(1) rotate(-5deg); }
+}
+
+/* ===== Stage Transition & Feeding ===== */
+.tree-scene.stage-up {
+  animation: stage-up 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes stage-up {
+  0% { filter: brightness(2); }
+  40% { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}
+.stage-particle {
+  position: fixed;
+  z-index: 250;
+  pointer-events: none;
+  animation: particle-burst 1s ease-out forwards;
+}
+@keyframes particle-burst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
+}
+.feed-drop {
+  position: fixed;
+  z-index: 250;
+  pointer-events: none;
+  font-size: 16px;
+  animation: feed-fall 0.8s ease-in forwards;
+}
+@keyframes feed-fall {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  70% { transform: translateY(var(--dy)) scale(0.6); opacity: 0.8; }
+  100% { transform: translateY(var(--dy)) scale(0.2); opacity: 0; }
+}
+.tree-area.tree-fed {
+  animation: tree-fed-pulse 0.6s ease-out;
+}
+@keyframes tree-fed-pulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.03); filter: brightness(1.15); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* ===== Tab Bar ===== */
+.tab-bar {
+  display: flex;
+  border-top: 1px solid #e8f5e9;
+  background: #fffef9;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #99b898;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: inherit;
+  border-bottom: 3px solid transparent;
+}
+.tab-btn.active {
+  color: #5a8a3c;
+  border-bottom-color: #56c596;
+  background: #f9fdf7;
+}
+.tab-btn:hover { color: #5a8a3c; background: #f9fdf7; }
+
+/* ===== Tab Content ===== */
+.tab-content {
+  display: none;
+  padding: 12px 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+.tab-content.active { display: block; }
+
+/* ===== Task List ===== */
+.task-list { list-style: none; }
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: #f9fdf7;
+  border-radius: 14px;
+  border: 1.5px solid #e8f5e9;
+  transition: all 0.3s;
+  cursor: pointer;
+  animation: slide-in 0.4s ease-out;
+}
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.task-item.completed {
+  background: #f0fdf4;
+  border-color: #a8e6cf;
+  opacity: 0.7;
+}
+.task-item:hover { border-color: #a8e6cf; }
+.task-checkbox {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 2.5px solid #c8e6c9;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  transition: all 0.3s;
+}
+.task-item.completed .task-checkbox {
+  background: #56c596;
+  border-color: #56c596;
+}
+.task-info { flex: 1; min-width: 0; }
+.task-name { font-size: 0.95em; font-weight: 600; color: #3d5a3d; }
+.task-item.completed .task-name { text-decoration: line-through; color: #a0c0a0; }
+.task-points {
+  font-size: 0.75em;
+  color: #88b888;
+  margin-top: 2px;
+}
+.task-star {
+  font-size: 1.1em;
+  color: #ffcc02;
+  flex-shrink: 0;
+}
+
+/* ===== Reward Area ===== */
+.reward-locked {
+  text-align: center;
+  padding: 30px 20px;
+  color: #a0c0a0;
+}
+.reward-locked .lock-icon {
+  font-size: 3em;
+  display: block;
+  margin-bottom: 10px;
+}
+.reward-available {
+  text-align: center;
+}
+.reward-banner {
+  background: linear-gradient(135deg, #fff9c4, #ffe082);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 3px solid #ffcc02;
+  animation: glow-border 2s ease-in-out infinite;
+}
+@keyframes glow-border {
+  0%, 100% { box-shadow: 0 0 10px rgba(255,204,2,0.3); }
+  50% { box-shadow: 0 0 25px rgba(255,204,2,0.6); }
+}
+.reward-banner h3 { font-size: 1.2em; color: #c79100; margin-bottom: 6px; }
+.reward-banner p { font-size: 0.9em; color: #8a6d00; }
+.reward-list { list-style: none; }
+.reward-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: #fffef9;
+  border-radius: 14px;
+  border: 2px solid #e8f5e9;
+}
+.reward-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffe082, #ffcc02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+.reward-info { flex: 1; }
+.reward-name { font-weight: 600; color: #3d5a3d; font-size: 0.95em; }
+.reward-desc { font-size: 0.75em; color: #99b898; }
+.btn-redeem {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.85em;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.3s;
+  box-shadow: 0 3px 10px rgba(255,152,0,0.3);
+}
+.btn-redeem:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(255,152,0,0.4); }
+.btn-redeem:disabled {
+  background: #ccc;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.reward-history {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed #e0e0e0;
+}
+.reward-history h4 { font-size: 0.9em; color: #99b898; margin-bottom: 8px; }
+.reward-history-item {
+  font-size: 0.85em;
+  color: #6b8a5a;
+  padding: 4px 0;
+}
+
+/* ===== Settings Panel ===== */
+.settings-locked {
+  text-align: center;
+  padding: 30px 20px;
+}
+.settings-locked .lock-icon { font-size: 3em; display: block; margin-bottom: 10px; }
+.math-question {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #3d5a3d;
+  margin: 12px 0;
+}
+.math-input {
+  width: 80px;
+  padding: 8px 12px;
+  border: 2px solid #c8e6c9;
+  border-radius: 12px;
+  font-size: 1.2em;
+  text-align: center;
+  font-family: inherit;
+  outline: none;
+}
+.math-input:focus { border-color: #56c596; }
+.btn-unlock {
+  display: block;
+  margin: 10px auto 0;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #56c596, #3d8b40);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9em;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.settings-form { display: none; }
+.settings-form.show { display: block; }
+.setting-section {
+  margin-bottom: 20px;
+}
+.setting-section h3 {
+  font-size: 1em;
+  color: #3d5a3d;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #e8f5e9;
+}
+.form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.form-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 2px solid #c8e6c9;
+  border-radius: 12px;
+  font-size: 0.9em;
+  font-family: inherit;
+  outline: none;
+}
+.form-row input:focus { border-color: #56c596; }
+.form-row input[type="number"] { max-width: 80px; }
+.btn-sm {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8em;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.btn-add { background: #c8e6c9; color: #2d5a3d; }
+.btn-add:hover { background: #a8d8ad; }
+.btn-del { background: #ffcdd2; color: #c62828; }
+.btn-del:hover { background: #ef9a9a; }
+.btn-save-settings {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #56c596, #3d8b40);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.95em;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-reset {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: transparent;
+  border: 2px solid #ffcdd2;
+  border-radius: 16px;
+  color: #c62828;
+  font-weight: 600;
+  font-size: 0.85em;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-export {
+  background: #e3f2fd; color: #1565c0; flex: 1; text-align: center;
+}
+.btn-export:hover { background: #bbdefb; }
+.btn-import {
+  background: #fff3e0; color: #e65100; flex: 1; text-align: center;
+}
+.btn-import:hover { background: #ffe0b2; }
+
+/* ===== Celebration Overlay ===== */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fade-in 0.3s ease-out;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.overlay-content {
+  background: white;
+  border-radius: 24px;
+  padding: 30px 24px;
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+  animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.celebration-emoji {
+  font-size: 4em;
+  display: block;
+  animation: bounce-icon 0.5s ease-in-out 3;
+}
+.celebration-title {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #3d5a3d;
+  margin: 10px 0 6px;
+}
+.celebration-text {
+  color: #6b8a5a;
+  margin-bottom: 16px;
+  font-size: 0.9em;
+}
+.btn-celebrate {
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  border: none;
+  border-radius: 24px;
+  color: white;
+  font-weight: 700;
+  font-size: 1em;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 15px rgba(255,152,0,0.3);
+}
+
+/* ===== Confetti helper ===== */
+.confetti-piece {
+  position: fixed;
+  z-index: 200;
+  pointer-events: none;
+  animation: confetti-fall 1.5s ease-in forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* ===== History Section ===== */
+.history-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 2px dashed #e8f5e9;
+}
+.history-title {
+  font-size: 0.9em;
+  color: #5a8a3c;
+  margin-bottom: 6px;
+  user-select: none;
+}
+.history-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  font-size: 0.8em;
+  background: #fafff7;
+  border-radius: 8px;
+}
+.history-item .h-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.h-dot.task-dot { background: #56c596; }
+.h-dot.reward-dot { background: #ff9800; }
+.history-item .h-info { flex: 1; color: #5a8a3c; }
+.history-item .h-points {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.h-points.earn { color: #388e3c; }
+.h-points.spend { color: #e65100; }
+.history-item .h-date { color: #99b898; font-size: 0.85em; flex-shrink: 0; }
+
+/* ===== Responsive ===== */
+@media (max-width: 440px) {
+  .app { border-radius: 0; min-height: 100vh; }
+  .tree-area { flex: 0 0 150px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <img class="header-photo" id="headerPhoto" src="" alt="" style="display:none;" onclick="document.getElementById('photoUpload').click()" title="点击更换照片">
+      <div class="header-photo-placeholder" id="headerPhotoPlaceholder" onclick="document.getElementById('photoUpload').click()" title="点击上传照片">📷</div>
+      <div class="header-title" id="headerTitle">🌳 任务积分树</div>
+      <span class="header-streak" id="streakBadge"></span>
+    </div>
+    <div class="header-info">
+      <span class="stage-icon" id="stageIcon">🌰</span>
+      <span id="stageName">种子阶段</span>
+      <span style="opacity:0.5;">·</span>
+      <span id="headerPoints">0 积分</span>
+      <span style="opacity:0.5;">·</span>
+      <span id="bestStreakText" style="font-size:0.85em;"></span>
+    </div>
+  </div>
+
+  <!-- Tree Display -->
+  <div class="tree-area" id="treeArea">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="tree-container">
+      <div class="tree-scene" id="treeScene"></div>
+      <div class="ground-grass"></div>
+      <div class="ground"></div>
+    </div>
+    <div class="tree-progress">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progressBar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="tasks">📋 任务</button>
+    <button class="tab-btn" data-tab="rewards">🎁 兑奖</button>
+    <button class="tab-btn" data-tab="settings">⚙️ 设置</button>
+  </div>
+
+  <!-- Tab: Tasks -->
+  <div class="tab-content active" id="tab-tasks">
+    <ul class="task-list" id="taskList"></ul>
+    <p style="text-align:center;color:#c0d8c0;font-size:0.85em;margin-top:8px;" id="taskEmpty">
+      还没有任务～去「设置」里添加吧 ✨
+    </p>
+    <p style="text-align:center;color:#56c596;font-size:0.95em;font-weight:600;margin-top:8px;display:none;" id="allDoneMsg">
+      🎉 今日任务全部完成！太棒了！
+    </p>
+    <div class="history-section" id="historySection">
+      <h3 class="history-title" id="historyToggle" style="cursor:pointer;">
+        📋 积分明细 <span style="font-size:0.7em;color:#99b898;">(点击展开)</span>
+      </h3>
+      <div class="history-list" id="historyList" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Rewards -->
+  <div class="tab-content" id="tab-rewards">
+    <div class="reward-locked" id="rewardLocked">
+      <span class="lock-icon">🔒</span>
+      <p>积分还不够哦～<br>继续完成任务攒积分吧</p>
+      <p style="font-size:0.8em;margin-top:6px;">💪 加油加油！</p>
+    </div>
+    <div class="reward-available" id="rewardAvailable" style="display:none;">
+      <div class="reward-banner">
+        <h3>🎉 恭喜！树开花啦！</h3>
+        <p>你可以兑换下面的奖励哦～</p>
+      </div>
+      <ul class="reward-list" id="rewardList"></ul>
+      <div class="reward-history" id="rewardHistory" style="display:none;">
+        <h4>📜 兑奖记录</h4>
+        <div id="rewardHistoryList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Settings -->
+  <div class="tab-content" id="tab-settings">
+    <div class="settings-locked" id="settingsLocked">
+      <span class="lock-icon">🔐</span>
+      <p>这是家长设置区</p>
+      <p style="font-size:0.85em;color:#99b898;">请回答下面的数学题来解锁～</p>
+      <div class="math-question" id="mathQuestion">?</div>
+      <input type="number" class="math-input" id="mathAnswer" placeholder="?">
+      <button class="btn-unlock" id="btnUnlock">🔓 解锁</button>
+      <p style="font-size:0.75em;color:#c0d8c0;margin-top:12px;">💡 提示：解锁后可使用「数据备份」功能，防止换设备后数据丢失</p>
+    </div>
+    <div class="settings-form" id="settingsForm">
+      <div class="setting-section">
+        <h3>👶 宝贝信息</h3>
+        <div class="form-row">
+          <input type="text" id="childNameInput" placeholder="宝贝的名字" maxlength="10">
+          <button class="btn-sm btn-add" id="btnPhotoUpload" onclick="document.getElementById('photoUpload').click()">📷 上传照片</button>
+        </div>
+        <p style="font-size:0.75em;color:#99b898;margin-top:2px;">设置名字后标题会变成「宝贝的积分树」</p>
+      </div>
+      <div class="setting-section">
+        <h3>📝 管理任务</h3>
+        <div class="form-row">
+          <input type="text" id="newTaskName" placeholder="任务名称" maxlength="20">
+          <input type="number" id="newTaskPoints" placeholder="积分(惩罚填负数)" min="-50" max="50" value="5" style="max-width:80px;">
+          <select id="newTaskType" style="padding:4px 6px;border:2px solid #c8e6c9;border-radius:12px;font-family:inherit;font-size:0.78em;outline:none;">
+            <option value="daily">每日</option>
+            <option value="long">长期</option>
+            <option value="once">一次性</option>
+          </select>
+          <button class="btn-sm btn-add" id="btnAddTask">+ 添加</button>
+        </div>
+        <ul class="task-list" id="settingsTaskList"></ul>
+      </div>
+      <div class="setting-section">
+        <h3>🎁 管理奖励</h3>
+        <div class="form-row">
+          <input type="text" id="newRewardName" placeholder="奖励名称" maxlength="20">
+          <input type="number" id="newRewardCost" placeholder="积分" min="5" max="999" value="20" style="max-width:70px;">
+          <button class="btn-sm btn-add" id="btnAddReward">+ 添加</button>
+        </div>
+        <ul class="task-list" id="settingsRewardList"></ul>
+      </div>
+      <div class="setting-section">
+        <h3>⚙️ 积分设置</h3>
+        <div class="form-row">
+          <span style="font-size:0.9em;color:#6b8a5a;padding-top:10px;">每阶段积分</span>
+          <input type="number" id="pointsPerStage" min="10" max="100" value="20">
+        </div>
+      </div>
+      <div class="setting-section">
+        <h3>📦 数据备份</h3>
+        <p style="font-size:0.8em;color:#99b898;margin-bottom:8px;">换设备或文件后，可从备份恢复数据</p>
+        <div class="form-row" style="flex-wrap:wrap;gap:6px;">
+          <button class="btn-sm btn-export" id="btnExport">📥 导出备份</button>
+          <button class="btn-sm btn-import" id="btnImport">📤 导入恢复</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none;">
+        <input type="file" id="photoUpload" accept="image/*" style="display:none;" onchange="handlePhotoUpload(this.files[0])">
+        <p id="backupMsg" style="font-size:0.75em;color:#56c596;margin-top:4px;display:none;"></p>
+      </div>
+      <button class="btn-save-settings" id="btnSaveSettings">💾 保存设置</button>
+      <button class="btn-reset" id="btnResetAll">🔄 重置全部数据</button>
+    </div>
+  </div>
+</div>
+
+<!-- Celebration Overlay -->
+<div class="overlay" id="celebrateOverlay" style="display:none;">
+  <div class="overlay-content">
+    <span class="celebration-emoji" id="celebrationEmoji">🎉</span>
+    <div class="celebration-title" id="celebrationTitle">太棒了！</div>
+    <div class="celebration-text" id="celebrationText"></div>
+    <button class="btn-celebrate" id="btnCelebrateClose">👏 好的！</button>
+  </div>
+</div>
+
+<script>
+// ==================== DATA MANAGEMENT ====================
+const STORAGE_KEY = 'task-tree-data';
+const DEFAULT_DATA = {
+  tasks: [
+    { id: 't1', name: '整理玩具', points: 5, type: 'daily', completed: false },
+    { id: 't2', name: '认真刷牙', points: 5, type: 'daily', completed: false },
+    { id: 't3', name: '读一本书', points: 10, type: 'daily', completed: false },
+    { id: 't4', name: '帮妈妈做家务', points: 10, type: 'daily', completed: false },
+    { id: 't5', name: '按时睡觉', points: 10, type: 'daily', completed: false },
+  ],
+  totalPoints: 0,
+  history: [],
+  rewards: [
+    { id: 'r1', name: '看30分钟动画片', cost: 20 },
+    { id: 'r2', name: '吃一个冰淇淋', cost: 30 },
+    { id: 'r3', name: '去游乐场玩', cost: 80 },
+  ],
+  settings: {
+    pointsPerStage: 20,
+    stagesToBloom: 8,
+  },
+  dailyResetDate: '',
+  currentStreak: 0,
+  bestStreak: 0,
+  streakUpdatedDate: '',
+  childName: '',
+  childPhoto: '',
+};
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      // Migrate old data model if needed
+      if (data.tree) {
+        data.totalPoints = data.tree.cyclePoints || 0;
+        delete data.tree;
+      }
+      if (data.rewardHistory && !data.history) {
+        data.history = data.rewardHistory.map(h => ({
+          type: 'reward',
+          rewardName: h.rewardName,
+          cost: 100,
+          date: h.redeemedAt,
+          time: '',
+        }));
+      }
+      if (data.rewards) {
+        data.rewards = data.rewards.map(r => ({
+          ...r,
+          cost: r.cost || 20,
+        }));
+      }
+      if (data.tasks) {
+        data.tasks = data.tasks.map(t => ({
+          ...t,
+          type: t.type || 'daily',
+          completed: t.completed || false,
+        }));
+      }
+      return {
+        ...DEFAULT_DATA,
+        ...data,
+        settings: { ...DEFAULT_DATA.settings, ...(data.settings || {}) },
+        tasks: data.tasks || DEFAULT_DATA.tasks,
+        rewards: data.rewards || DEFAULT_DATA.rewards,
+        history: data.history || [],
+        dailyResetDate: data.dailyResetDate || '',
+        currentStreak: data.currentStreak || 0,
+        bestStreak: data.bestStreak || 0,
+        streakUpdatedDate: data.streakUpdatedDate || '',
+        childName: data.childName || '',
+        childPhoto: data.childPhoto || '',
+      };
+    }
+  } catch (e) { /* ignore */ }
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getToday() {
+  return new Date().toLocaleDateString('zh-CN');
+}
+
+function checkAndResetDaily() {
+  const today = getToday();
+  if (appData.dailyResetDate === today) return;
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toLocaleDateString('zh-CN');
+
+  // Check streak continuation
+  if (appData.dailyResetDate === yesterdayStr && appData.currentStreak > 0) {
+    const allDone = appData.tasks.filter(t => t.type === 'daily').every(t => t.completed);
+    if (allDone) { appData.currentStreak++; }
+    else { appData.currentStreak = 0; }
+  } else if (appData.dailyResetDate !== yesterdayStr) {
+    appData.currentStreak = 0;
+  }
+
+  // Reset only daily tasks
+  appData.tasks.forEach(t => {
+    if (t.type === 'daily') t.completed = false;
+  });
+  appData.dailyResetDate = today;
+  if (appData.streakUpdatedDate !== today) {
+    appData.streakUpdatedDate = '';
+  }
+  if (appData.currentStreak > appData.bestStreak) {
+    appData.bestStreak = appData.currentStreak;
+  }
+  saveData(appData);
+}
+
+let appData = loadData();
+checkAndResetDaily();
+
+// ==================== TREE LOGIC ====================
+function getMaxPoints() {
+  return appData.settings.pointsPerStage * appData.settings.stagesToBloom;
+}
+
+function getStageFromPoints(points) {
+  const pps = appData.settings.pointsPerStage;
+  const maxStage = appData.settings.stagesToBloom;
+  const stage = Math.min(Math.floor(points / pps) + 1, maxStage);
+  return Math.max(1, stage);
+}
+
+function getStageProgress(points) {
+  const pps = appData.settings.pointsPerStage;
+  const maxPoints = getMaxPoints();
+  return { overall: points, max: maxPoints };
+}
+
+// ==================== TREE RENDERER ====================
+const stageHTML = {
+  1: '<div class="seed"></div><div class="seed-crack"></div>',
+  2: '<div class="sprout-stem"></div><div class="sprout-leaf" style="left: calc(50% - 10px);"></div><div class="sprout-leaf sprout-leaf-right" style="left: calc(50% - 2px);"></div>',
+  3: '<div class="seedling-stem"></div><div class="seedling-leaf seedling-leaf-1"></div><div class="seedling-leaf seedling-leaf-2"></div><div class="seedling-leaf seedling-leaf-3"></div><div class="seedling-leaf seedling-leaf-4"></div><div class="seedling-bud"></div>',
+  4: '<div class="trunk"></div><div class="canopy"></div><div class="canopy-detail"></div>',
+  5: '<div class="trunk"></div><div class="canopy-left"></div><div class="canopy-right"></div><div class="canopy-main"></div><div class="canopy-top"></div>',
+  6: '<div class="trunk"></div><div class="canopy-left"></div><div class="canopy-right"></div><div class="canopy-main"></div><div class="canopy-top"></div><div class="canopy-top2"></div><div class="bird"></div>',
+  7: '<div class="trunk"></div><div class="canopy-left"></div><div class="canopy-right"></div><div class="canopy-main"></div><div class="canopy-top"></div><div class="flower flower-1"></div><div class="flower flower-2"></div><div class="flower flower-3"></div><div class="flower flower-4"></div><div class="flower flower-5"></div><div class="sparkle sparkle-1"></div><div class="sparkle sparkle-2"></div><div class="sparkle sparkle-3"></div>',
+  8: '<div class="trunk"></div><div class="canopy-left"></div><div class="canopy-right"></div><div class="canopy-main"></div><div class="canopy-top"></div><div class="flower flower-1"></div><div class="flower flower-2"></div><div class="flower flower-3"></div><div class="flower flower-4"></div><div class="flower flower-5"></div><div class="sparkle sparkle-1"></div><div class="sparkle sparkle-2"></div><div class="sparkle sparkle-3"></div><div class="fruit fruit-1"></div><div class="fruit fruit-2"></div><div class="fruit fruit-3"></div><div class="fruit fruit-4"></div><div class="fruit fruit-5"></div><div class="butterfly"></div>',
+};
+
+const stageIcons = { 1: '🌰', 2: '🌱', 3: '🌿', 4: '🌲', 5: '🌳', 6: '🍃', 7: '🌸', 8: '🍎' };
+const stageNames = { 1: '种子阶段', 2: '嫩芽阶段', 3: '幼苗阶段', 4: '小树阶段', 5: '大树阶段', 6: '茂盛阶段', 7: '开花阶段', 8: '结果阶段' };
+
+let lastRenderedStage = 0;
+
+function renderTree() {
+  const pts = appData.totalPoints;
+  const stage = getStageFromPoints(pts);
+  const maxPts = getMaxPoints();
+
+  const scene = document.getElementById('treeScene');
+  const stageChanged = stage !== lastRenderedStage;
+  scene.className = 'tree-scene tree-stage-' + stage + (stageChanged && lastRenderedStage > 0 ? ' stage-up' : '');
+  scene.innerHTML = stageHTML[stage] || '';
+  if (stageChanged && lastRenderedStage > 0) {
+    setTimeout(() => scene.classList.remove('stage-up'), 800);
+  }
+  lastRenderedStage = stage;
+
+  // Personalized title & photo
+  const name = appData.childName || '';
+  document.getElementById('headerTitle').textContent = name ? '🌳 ' + name + '的积分树' : '🌳 任务积分树';
+  const photo = document.getElementById('headerPhoto');
+  const placeholder = document.getElementById('headerPhotoPlaceholder');
+  if (appData.childPhoto) {
+    photo.src = appData.childPhoto;
+    photo.style.display = '';
+    placeholder.style.display = 'none';
+  } else {
+    photo.style.display = 'none';
+    placeholder.style.display = '';
+  }
+
+  // Progress & info
+  const pct = maxPts > 0 ? Math.min((pts / maxPts) * 100, 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('headerPoints').textContent = pts + ' 积分';
+  document.getElementById('stageIcon').textContent = stageIcons[stage] || '🌰';
+  document.getElementById('stageName').textContent = stageNames[stage] || '种子阶段';
+
+  // Streak badge
+  const badge = document.getElementById('streakBadge');
+  if (appData.currentStreak > 0) {
+    badge.textContent = '🔥 ' + appData.currentStreak + ' 天';
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+  const bestText = document.getElementById('bestStreakText');
+  if (appData.bestStreak > 0) {
+    bestText.textContent = '🏆 最高 ' + appData.bestStreak + ' 天';
+  } else {
+    bestText.textContent = '';
+  }
+
+  const treeArea = document.getElementById('treeArea');
+  treeArea.style.transform = 'scale(1.02)';
+  setTimeout(() => { treeArea.style.transform = 'scale(1)'; }, 150);
+
+  renderRewardsTab();
+}
+
+// ==================== TASK RENDERING ====================
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  const empty = document.getElementById('taskEmpty');
+  if (appData.tasks.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('allDoneMsg').style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Sort: active first, completed last
+  const sorted = [...appData.tasks].sort((a, b) => {
+    const aDone = (a.type === 'daily' || a.type === 'once') && a.completed;
+    const bDone = (b.type === 'daily' || b.type === 'once') && b.completed;
+    if (!aDone && bDone) return -1;
+    if (aDone && !bDone) return 1;
+    return 0;
+  });
+
+  const typeLabels = { daily: '每日', long: '长期', once: '' };
+  list.innerHTML = sorted.map(t => {
+    const isDone = (t.type === 'daily' || t.type === 'once') && t.completed;
+    const isPenalty = t.points < 0;
+    const cls = isDone ? 'task-item completed' : 'task-item';
+    const btnBg = isPenalty ? 'background:#ffcdd2;border-color:#ef9a9a;' : 'background:#ffe082;border-color:#ffcc02;';
+    const btnIcon = isDone ? '✅' : isPenalty ? '🔻' : '➕';
+    const typeLabel = typeLabels[t.type] || '';
+    const ptsText = isDone
+      ? (t.type === 'once' ? '已完成' : '今日已完成')
+      : ('每次 ' + (t.points >= 0 ? '+' : '') + t.points + ' 积分');
+    const ptsColor = isPenalty ? 'color:#c62828;' : '';
+    return `
+    <li class="${cls}" onclick="completeTask('${t.id}', event)" style="${isDone ? 'pointer-events:none;' : ''}">
+      <div class="task-checkbox" style="${isDone ? '' : btnBg}">${btnIcon}</div>
+      <div class="task-info">
+        <div class="task-name">${escHtml(t.name)}${typeLabel ? ' <span style="font-size:0.7em;color:#88b888;">' + typeLabel + '</span>' : ''}</div>
+        <div class="task-points" style="${ptsColor}">${ptsText}</div>
+      </div>
+      <div class="task-star">${isPenalty ? '⚡' : '⭐'}</div>
+    </li>
+  `}).join('');
+
+  // All-done message
+  const allDoneMsg = document.getElementById('allDoneMsg');
+  const dailyTasks = appData.tasks.filter(t => t.type === 'daily');
+  if (dailyTasks.length > 0 && dailyTasks.every(t => t.completed)) {
+    allDoneMsg.style.display = 'block';
+  } else {
+    allDoneMsg.style.display = 'none';
+  }
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ==================== TASK ACTIONS ====================
+function completeTask(taskId, e) {
+  const task = appData.tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  // Daily or once task: skip if already completed
+  if ((task.type === 'daily' || task.type === 'once') && task.completed) return;
+
+  const oldPts = appData.totalPoints;
+  const oldStage = getStageFromPoints(oldPts);
+  appData.totalPoints += task.points;
+  if (appData.totalPoints < 0) appData.totalPoints = 0;
+  const newStage = getStageFromPoints(appData.totalPoints);
+
+  // Mark as completed (long-term tasks stay uncompleted)
+  if (task.type === 'daily' || task.type === 'once') {
+    task.completed = true;
+  }
+
+  // Record in history
+  const now = new Date();
+  appData.history.push({
+    type: 'task',
+    taskName: task.name,
+    taskId: task.id,
+    points: task.points,
+    date: now.toLocaleDateString('zh-CN'),
+    time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.getTime(),
+  });
+
+  // Streak: check if all daily tasks done today
+  const allDailyDone = appData.tasks.filter(t => t.type === 'daily').every(t => t.completed);
+  if (allDailyDone && appData.streakUpdatedDate !== getToday()) {
+    if (appData.currentStreak === 0) { appData.currentStreak = 1; }
+    appData.streakUpdatedDate = getToday();
+    if (appData.currentStreak > appData.bestStreak) {
+      appData.bestStreak = appData.currentStreak;
+    }
+  }
+
+  // Stage change
+  if (newStage > oldStage) {
+    spawnStageParticles();
+    setTimeout(() => showStageUpCelebration(newStage), 300);
+  }
+
+  // Visual feedback
+  if (task.points < 0) {
+    spawnMiniPenalty(e);
+  } else {
+    spawnMiniStars(e);
+    spawnFeedDrops(e);
+  }
+  saveData(appData);
+  renderTasks();
+  renderTree();
+  renderHistory();
+  renderSettingsTasks();
+}
+
+function spawnFeedDrops(e) {
+  if (!e) return;
+  const treeArea = document.getElementById('treeArea');
+  const rect = treeArea.getBoundingClientRect();
+  const treeY = rect.top + rect.height * 0.5;
+  treeArea.classList.add('tree-fed');
+  setTimeout(() => treeArea.classList.remove('tree-fed'), 600);
+  for (let i = 0; i < 6; i++) {
+    setTimeout(() => {
+      const drop = document.createElement('span');
+      drop.textContent = '💧';
+      drop.className = 'feed-drop';
+      drop.style.cssText = 'left:' + (e.clientX + (Math.random()-0.5)*60) + 'px;top:' + (e.clientY+(Math.random()-0.5)*20) + 'px;--dy:' + (treeY - e.clientY) + 'px;animation-delay:' + (Math.random()*0.15) + 's;';
+      document.body.appendChild(drop);
+      setTimeout(() => drop.remove(), 1000);
+    }, i * 50);
+  }
+}
+
+function spawnStageParticles() {
+  const treeArea = document.getElementById('treeArea');
+  const rect = treeArea.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const colors = ['#ffe066','#56c596','#ff9800','#88d8b0','#ffb7c5','#4fc3f7','#ba68c8'];
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'stage-particle';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 80;
+    p.style.cssText = 'left:' + cx + 'px;top:' + cy + 'px;width:' + (4+Math.random()*8) + 'px;height:' + (4+Math.random()*8) + 'px;background:' + colors[Math.floor(Math.random()*colors.length)] + ';border-radius:50%;--px:' + (Math.cos(angle)*dist) + 'px;--py:' + (Math.sin(angle)*dist-20) + 'px;';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1100);
+  }
+}
+
+function spawnMiniPenalty(e) {
+  if (!e) return;
+  const emojis = ['💧', '😢', '💔'];
+  for (let i = 0; i < 3; i++) {
+    const el = document.createElement('span');
+    el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.cssText = 'position:fixed;z-index:200;pointer-events:none;font-size:'+(12+Math.random()*14)+'px;left:'+(e.clientX+(Math.random()-0.5)*30)+'px;top:'+e.clientY+'px;transition:all '+(0.6+Math.random()*0.6)+'s ease-out;opacity:1;';
+    document.body.appendChild(el);
+    requestAnimationFrame(() => {
+      el.style.transform = 'translateY('+(30+Math.random()*50)+'px) translateX('+((Math.random()-0.5)*40)+'px)';
+      el.style.opacity = '0';
+    });
+    setTimeout(() => el.remove(), 1500);
+  }
+}
+
+function spawnMiniStars(e) {
+  if (!e) return;
+  const emojis = ['⭐', '✨', '🌟', '💫'];
+  for (let i = 0; i < 5; i++) {
+    const star = document.createElement('span');
+    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    star.style.cssText = `
+      position: fixed; z-index: 200; pointer-events: none;
+      font-size: ${14 + Math.random() * 16}px;
+      left: ${e.clientX + (Math.random() - 0.5) * 40}px;
+      top: ${e.clientY}px;
+      transition: all ${0.6 + Math.random() * 0.6}s ease-out;
+      opacity: 1;
+    `;
+    document.body.appendChild(star);
+    requestAnimationFrame(() => {
+      star.style.transform = `translateY(-${40 + Math.random() * 60}px) translateX(${(Math.random()-0.5)*60}px)`;
+      star.style.opacity = '0';
+    });
+    setTimeout(() => star.remove(), 1500);
+  }
+}
+
+// ==================== HISTORY RENDERING ====================
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const records = appData.history.slice().reverse().slice(0, 50); // last 50 records
+  if (records.length === 0) {
+    list.innerHTML = '<p style="color:#c0d8c0;text-align:center;font-size:0.8em;">还没有记录～</p>';
+    return;
+  }
+  list.innerHTML = records.map(h => {
+    if (h.type === 'task') {
+      const pts = h.points;
+      const ptsStr = pts >= 0 ? '+' + pts : '' + pts;
+      const ptsCls = pts >= 0 ? 'earn' : 'spend';
+      return `
+        <div class="history-item">
+          <div class="h-dot task-dot" style="background:${pts >= 0 ? '#56c596' : '#ef5350'};"></div>
+          <div class="h-info">${escHtml(h.taskName)}</div>
+          <div class="h-points ${ptsCls}">${ptsStr}</div>
+          <div class="h-date">${h.date} ${h.time || ''}</div>
+        </div>`;
+    } else {
+      return `
+        <div class="history-item">
+          <div class="h-dot reward-dot"></div>
+          <div class="h-info">🎁 ${escHtml(h.rewardName)}</div>
+          <div class="h-points spend">-${h.cost}</div>
+          <div class="h-date">${h.date} ${h.time || ''}</div>
+        </div>`;
+    }
+  }).join('');
+}
+
+// ==================== REWARDS RENDERING ====================
+function renderRewardsTab() {
+  const pts = appData.totalPoints;
+  const affordable = appData.rewards.some(r => pts >= r.cost);
+
+  const locked = document.getElementById('rewardLocked');
+  const available = document.getElementById('rewardAvailable');
+
+  if (!affordable && appData.rewards.length > 0) {
+    locked.style.display = 'block';
+    available.style.display = 'none';
+    // Find cheapest reward to show hint
+    const cheapest = appData.rewards.reduce((min, r) => r.cost < min.cost ? r : min, appData.rewards[0]);
+    locked.querySelector('p:nth-child(2)').textContent =
+      '至少需要 ' + cheapest.cost + ' 积分才能兑换奖励哦～';
+  } else if (appData.rewards.length === 0) {
+    locked.style.display = 'block';
+    available.style.display = 'none';
+    locked.querySelector('p:nth-child(2)').textContent = '还没有设置奖励～去「设置」里添加吧';
+  } else {
+    locked.style.display = 'none';
+    available.style.display = 'block';
+    renderRewardList();
+    renderRewardHistory();
+  }
+}
+
+function renderRewardList() {
+  const list = document.getElementById('rewardList');
+  if (appData.rewards.length === 0) {
+    list.innerHTML = '<p style="color:#c0d8c0;text-align:center;">还没有奖励～去「设置」里添加吧</p>';
+    return;
+  }
+  const pts = appData.totalPoints;
+  list.innerHTML = appData.rewards.map((r, i) => {
+    const canAfford = pts >= r.cost;
+    return `
+    <li class="reward-item">
+      <div class="reward-icon">${['🎬','🍦','🎠','🧸','🎮','📱','🍕','🎨'][i % 8]}</div>
+      <div class="reward-info">
+        <div class="reward-name">${escHtml(r.name)}</div>
+        <div class="reward-desc">需要 <b>${r.cost}</b> 积分</div>
+      </div>
+      <button class="btn-redeem" ${canAfford ? '' : 'disabled'}
+        onclick="redeemReward('${r.id}')">
+        ${canAfford ? '兑换' : '不够'}
+      </button>
+    </li>
+  `}).join('');
+}
+
+function renderRewardHistory() {
+  const container = document.getElementById('rewardHistory');
+  const list = document.getElementById('rewardHistoryList');
+  const rewardRecords = appData.history.filter(h => h.type === 'reward');
+  if (rewardRecords.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+  list.innerHTML = rewardRecords.slice().reverse().map(h => `
+    <div class="reward-history-item">
+      🎁 ${escHtml(h.rewardName)} <span style="color:#e65100;">(-${h.cost}积分)</span> — ${h.date}
+    </div>
+  `).join('');
+}
+
+function redeemReward(rewardId) {
+  const reward = appData.rewards.find(r => r.id === rewardId);
+  if (!reward) return;
+  if (appData.totalPoints < reward.cost) return;
+
+  const oldStage = getStageFromPoints(appData.totalPoints);
+  appData.totalPoints -= reward.cost;
+  const newStage = getStageFromPoints(appData.totalPoints);
+
+  // Record in history
+  const now = new Date();
+  appData.history.push({
+    type: 'reward',
+    rewardName: reward.name,
+    cost: reward.cost,
+    date: now.toLocaleDateString('zh-CN'),
+    time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.getTime(),
+  });
+
+  saveData(appData);
+  renderAll();
+
+  // Show celebration
+  showCelebration('🎉', '兑奖成功！',
+    `你兑换了「${reward.name}」！\n消耗 ${reward.cost} 积分，剩余 ${appData.totalPoints} 积分`);
+  spawnConfetti();
+
+  // If stage dropped, mention it
+  if (newStage < oldStage) {
+    setTimeout(() => {
+      showCelebration('😢', '树变小了一点...', '继续完成任务让它重新长大吧！💪');
+    }, 2500);
+  }
+}
+
+// ==================== CELEBRATION OVERLAY ====================
+function showCelebration(emoji, title, text) {
+  document.getElementById('celebrationEmoji').textContent = emoji;
+  document.getElementById('celebrationTitle').textContent = title;
+  document.getElementById('celebrationText').textContent = text;
+  document.getElementById('celebrateOverlay').style.display = 'flex';
+}
+
+function showStageUpCelebration(stage) {
+  const icon = stageIcons[stage] || '🌳';
+  const name = stageNames[stage] || '';
+  const msg = stage === 8
+    ? '🎊 达到最终阶段「' + name + '」！\n你太厉害了，果实累累！'
+    : '进入「' + name + '」！\n继续完成任务让它长得更大吧～';
+  showCelebration(icon, stage === 8 ? '🌳 树结果啦！' : '树长大啦！', msg);
+  if (stage >= 5) { spawnConfetti(); }
+}
+
+function spawnConfetti() {
+  const colors = ['#ff6b8a','#ffe066','#56c596','#88d8b0','#ff9800','#ba68c8','#4fc3f7'];
+  for (let i = 0; i < 50; i++) {
+    setTimeout(() => {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.cssText = `
+        left: ${Math.random() * 100}vw;
+        top: -20px;
+        width: ${6 + Math.random() * 10}px;
+        height: ${6 + Math.random() * 14}px;
+        background: ${colors[Math.floor(Math.random() * colors.length)]};
+        border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+        animation-duration: ${1 + Math.random() * 2}s;
+        animation-delay: ${Math.random() * 0.5}s;
+      `;
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), 3000);
+    }, i * 20);
+  }
+}
+
+// ==================== SETTINGS ====================
+let mathA = 0, mathB = 0, mathOp = '+';
+
+function generateMathQuestion() {
+  mathA = Math.floor(Math.random() * 20) + 1;
+  mathB = Math.floor(Math.random() * 20) + 1;
+  const ops = ['+', '-', '×'];
+  mathOp = ops[Math.floor(Math.random() * ops.length)];
+  if (mathOp === '-' && mathA < mathB) {
+    [mathA, mathB] = [mathB, mathA];
+  }
+  document.getElementById('mathQuestion').textContent =
+    `${mathA} ${mathOp} ${mathB} = ?`;
+}
+
+function checkMathAnswer() {
+  const input = document.getElementById('mathAnswer');
+  const answer = parseInt(input.value, 10);
+  let correct;
+  switch (mathOp) {
+    case '+': correct = mathA + mathB; break;
+    case '-': correct = mathA - mathB; break;
+    case '×': correct = mathA * mathB; break;
+    default: correct = mathA + mathB;
+  }
+  if (answer === correct) {
+    document.getElementById('settingsLocked').style.display = 'none';
+    document.getElementById('settingsForm').classList.add('show');
+    input.value = '';
+    document.getElementById('childNameInput').value = appData.childName || '';
+    renderSettingsTasks();
+    renderSettingsRewards();
+    document.getElementById('pointsPerStage').value = appData.settings.pointsPerStage;
+  } else {
+    input.value = '';
+    input.placeholder = '再试试～';
+    generateMathQuestion();
+    input.style.borderColor = '#ffcdd2';
+    setTimeout(() => { input.style.borderColor = '#c8e6c9'; }, 800);
+  }
+}
+
+function renderSettingsTasks() {
+  const list = document.getElementById('settingsTaskList');
+  if (appData.tasks.length === 0) {
+    list.innerHTML = '<p style="color:#c0d8c0;text-align:center;font-size:0.85em;">暂无任务</p>';
+    return;
+  }
+  list.innerHTML = appData.tasks.map(t => `
+    <li class="task-item" style="cursor:default;">
+      <div class="task-info">
+        <div class="task-name">${escHtml(t.name)} <span style="font-size:0.7em;color:${t.points < 0 ? '#c62828' : '#88b888'};">[${t.type === 'daily' ? '每日' : t.type === 'long' ? '长期' : '一次性'}]</span></div>
+        <div class="task-points" style="${t.points < 0 ? 'color:#c62828;' : ''}">${t.points >= 0 ? '+' : ''}${t.points} 积分</div>
+      </div>
+      <button class="btn-sm btn-del" onclick="deleteTask('${t.id}')">删除</button>
+    </li>
+  `).join('');
+}
+
+function renderSettingsRewards() {
+  const list = document.getElementById('settingsRewardList');
+  if (appData.rewards.length === 0) {
+    list.innerHTML = '<p style="color:#c0d8c0;text-align:center;font-size:0.85em;">暂无奖励</p>';
+    return;
+  }
+  list.innerHTML = appData.rewards.map(r => `
+    <li class="task-item" style="cursor:default;">
+      <div class="task-info">
+        <div class="task-name">🎁 ${escHtml(r.name)}</div>
+        <div class="task-points">消耗 ${r.cost || 20} 积分</div>
+      </div>
+      <button class="btn-sm btn-del" onclick="deleteReward('${r.id}')">删除</button>
+    </li>
+  `).join('');
+}
+
+function addTask() {
+  const nameInput = document.getElementById('newTaskName');
+  const pointsInput = document.getElementById('newTaskPoints');
+  const typeInput = document.getElementById('newTaskType');
+  const name = nameInput.value.trim();
+  const points = parseInt(pointsInput.value, 10) || 5;
+  const type = typeInput ? typeInput.value : 'daily';
+  if (!name) return;
+  const clamped = points > 0 ? Math.max(1, Math.min(50, points)) : Math.max(-50, Math.min(-1, points));
+  appData.tasks.push({
+    id: 't' + Date.now(),
+    name,
+    points: clamped,
+    type,
+    completed: false,
+  });
+  nameInput.value = '';
+  pointsInput.value = '5';
+  saveData(appData);
+  renderTasks();
+  renderSettingsTasks();
+}
+
+function deleteTask(taskId) {
+  appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+  saveData(appData);
+  renderTasks();
+  renderSettingsTasks();
+}
+
+function addReward() {
+  const nameInput = document.getElementById('newRewardName');
+  const costInput = document.getElementById('newRewardCost');
+  const name = nameInput.value.trim();
+  const cost = parseInt(costInput.value, 10) || 20;
+  if (!name) return;
+  appData.rewards.push({ id: 'r' + Date.now(), name, cost: Math.max(5, cost) });
+  nameInput.value = '';
+  costInput.value = '20';
+  saveData(appData);
+  renderRewardsTab();
+  renderSettingsRewards();
+}
+
+function deleteReward(rewardId) {
+  appData.rewards = appData.rewards.filter(r => r.id !== rewardId);
+  saveData(appData);
+  renderRewardsTab();
+  renderSettingsRewards();
+}
+
+function saveSettings() {
+  const pps = parseInt(document.getElementById('pointsPerStage').value, 10) || 20;
+  appData.settings.pointsPerStage = Math.max(10, Math.min(100, pps));
+  const nameInput = document.getElementById('childNameInput');
+  if (nameInput) { appData.childName = nameInput.value.trim(); }
+  saveData(appData);
+  renderTree();
+  renderTasks();
+  alert('设置已保存！✅');
+}
+
+function resetAll() {
+  if (confirm('确定要重置所有数据吗？这会清除所有任务、积分和兑奖记录。')) {
+    appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    saveData(appData);
+    renderAll();
+  }
+}
+
+// ==================== PHOTO UPLOAD ====================
+function handlePhotoUpload(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const max = 200;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > max) { h *= max / w; w = max; } }
+      else { if (h > max) { w *= max / h; h = max; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      appData.childPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      saveData(appData);
+      renderTree();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ==================== DATA EXPORT / IMPORT ====================
+function exportData() {
+  const data = JSON.stringify(appData, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'task-tree-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showBackupMsg('✅ 备份已导出！');
+}
+
+function importData() {
+  document.getElementById('importFile').click();
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      // Validate structure
+      if (!imported.tasks || !imported.rewards) {
+        throw new Error('数据格式不正确');
+      }
+      const pts = imported.totalPoints || (imported.tree ? imported.tree.cyclePoints : 0) || 0;
+      if (confirm(
+        '确定要导入备份数据吗？当前数据将被覆盖。\n\n' +
+        '备份信息：\n' +
+        '任务数：' + imported.tasks.length + '\n' +
+        '当前积分：' + pts + '\n' +
+        '记录数：' + (imported.history ? imported.history.length : 0)
+      )) {
+        // Migrate old format if needed
+        if (imported.tree) {
+          imported.totalPoints = imported.tree.cyclePoints || 0;
+          delete imported.tree;
+        }
+        if (imported.rewardHistory && !imported.history) {
+          imported.history = imported.rewardHistory.map(h => ({
+            type: 'reward', rewardName: h.rewardName, cost: 100,
+            date: h.redeemedAt, time: '',
+          }));
+        }
+        if (imported.rewards) {
+          imported.rewards = imported.rewards.map(r => ({ ...r, cost: r.cost || 20 }));
+        }
+        appData = imported;
+        appData.settings = { ...DEFAULT_DATA.settings, ...(appData.settings || {}) };
+        appData.history = appData.history || [];
+        appData.totalPoints = appData.totalPoints || 0;
+        saveData(appData);
+        renderAll();
+        showBackupMsg('✅ 数据已恢复！');
+      }
+    } catch (err) {
+      alert('导入失败：文件格式不正确，请选择正确的备份文件。');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showBackupMsg(msg) {
+  const el = document.getElementById('backupMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ==================== RENDER ALL ====================
+function renderAll() {
+  renderTree();
+  renderTasks();
+  renderHistory();
+  renderRewardsTab();
+}
+
+// ==================== EVENT LISTENERS ====================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+    // Re-lock settings when switching away
+    if (btn.dataset.tab === 'settings') {
+      document.getElementById('settingsLocked').style.display = 'block';
+      document.getElementById('settingsForm').classList.remove('show');
+      generateMathQuestion();
+      document.getElementById('mathAnswer').value = '';
+    }
+    if (btn.dataset.tab === 'rewards') {
+      renderRewardsTab();
+    }
+  });
+});
+
+document.getElementById('btnUnlock').addEventListener('click', checkMathAnswer);
+document.getElementById('mathAnswer').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkMathAnswer();
+});
+
+document.getElementById('btnAddTask').addEventListener('click', addTask);
+document.getElementById('newTaskName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+document.getElementById('btnAddReward').addEventListener('click', addReward);
+document.getElementById('newRewardName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addReward();
+});
+document.getElementById('newRewardCost').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addReward();
+});
+
+document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
+document.getElementById('btnResetAll').addEventListener('click', resetAll);
+document.getElementById('btnExport').addEventListener('click', exportData);
+document.getElementById('btnImport').addEventListener('click', importData);
+document.getElementById('importFile').addEventListener('change', function() {
+  handleImportFile(this.files[0]);
+  this.value = '';
+});
+
+document.getElementById('btnCelebrateClose').addEventListener('click', () => {
+  document.getElementById('celebrateOverlay').style.display = 'none';
+});
+
+// Close overlay on click outside
+document.getElementById('celebrateOverlay').addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.style.display = 'none';
+  }
+});
+
+// ==================== INIT ====================
+renderAll();
+generateMathQuestion();
+
+// History toggle
+document.getElementById('historyToggle').addEventListener('click', function() {
+  const list = document.getElementById('historyList');
+  const showing = list.style.display !== 'none';
+  list.style.display = showing ? 'none' : 'block';
+  this.querySelector('span').textContent = showing ? '(点击展开)' : '(点击收起)';
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
