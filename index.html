@@ -2093,7 +2093,7 @@ function exportData() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showBackupMsg('✅ 备份已导出！');
+  showBackupMsg('✅ 已导出 ' + appData.tasks.length + ' 个任务、' + appData.rewards.length + ' 个奖励、' + appData.totalPoints + ' 积分');
 }
 
 function importData() {
@@ -2111,11 +2111,19 @@ function handleImportFile(file) {
         throw new Error('数据格式不正确');
       }
       const pts = imported.totalPoints || (imported.tree ? imported.tree.cyclePoints : 0) || 0;
+      const rewardCount = imported.rewards ? imported.rewards.length : 0;
+      const settingInfo = imported.settings
+        ? ('每阶段' + (imported.settings.pointsPerStage || 20) + '积分，共' + (imported.settings.stagesToBloom || 8) + '阶段')
+        : '';
       if (confirm(
         '确定要导入备份数据吗？当前数据将被覆盖。\n\n' +
         '备份信息：\n' +
-        '任务数：' + imported.tasks.length + '\n' +
+        '任务数：' + imported.tasks.length + '（每日/长期/一次性）\n' +
+        '奖励数：' + rewardCount + '\n' +
         '当前积分：' + pts + '\n' +
+        '打卡最高：' + (imported.bestStreak || 0) + ' 天\n' +
+        (imported.childName ? '宝贝：' + imported.childName + '\n' : '') +
+        (settingInfo ? '设置：' + settingInfo + '\n' : '') +
         '记录数：' + (imported.history ? imported.history.length : 0)
       )) {
         // Migrate old format if needed
@@ -2132,11 +2140,31 @@ function handleImportFile(file) {
         if (imported.rewards) {
           imported.rewards = imported.rewards.map(r => ({ ...r, cost: r.cost || 20 }));
         }
-        appData = imported;
-        appData.settings = { ...DEFAULT_DATA.settings, ...(appData.settings || {}) };
-        appData.history = appData.history || [];
-        appData.totalPoints = appData.totalPoints || 0;
+        // Full migration: ensure all fields exist
+        appData = {
+          ...DEFAULT_DATA,
+          ...imported,
+          settings: { ...DEFAULT_DATA.settings, ...(imported.settings || {}) },
+          tasks: (imported.tasks || DEFAULT_DATA.tasks).map(t => ({
+            ...t,
+            type: t.type || 'daily',
+            completed: t.completed || false,
+          })),
+          rewards: (imported.rewards || DEFAULT_DATA.rewards).map(r => ({
+            ...r,
+            cost: r.cost || 20,
+          })),
+          history: imported.history || [],
+          totalPoints: imported.totalPoints || 0,
+          dailyResetDate: imported.dailyResetDate || '',
+          currentStreak: imported.currentStreak || 0,
+          bestStreak: imported.bestStreak || 0,
+          streakUpdatedDate: imported.streakUpdatedDate || '',
+          childName: imported.childName || '',
+          childPhoto: imported.childPhoto || '',
+        };
         saveData(appData);
+        checkAndResetDaily();
         renderAll();
         showBackupMsg('✅ 数据已恢复！');
       }
