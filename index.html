@@ -1280,6 +1280,19 @@ body {
   </div>
 </div>
 
+<!-- Confirm Overlay -->
+<div class="overlay" id="confirmOverlay" style="display:none;">
+  <div class="overlay-content" style="max-width:280px;">
+    <div class="celebration-emoji" id="confirmIcon">⭐</div>
+    <div class="celebration-title" id="confirmTitle">确定完成？</div>
+    <div class="celebration-text" id="confirmText"></div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;">
+      <button style="padding:10px 30px;background:#ccc;border:none;border-radius:20px;font-size:1em;font-weight:700;cursor:pointer;font-family:inherit;" id="btnConfirmCancel">取消</button>
+      <button style="padding:10px 30px;background:linear-gradient(135deg,#56c596,#3d8b40);border:none;border-radius:20px;color:white;font-size:1em;font-weight:700;cursor:pointer;font-family:inherit;" id="btnConfirmOk">确定</button>
+    </div>
+  </div>
+</div>
+
 <!-- Celebration Overlay -->
 <div class="overlay" id="celebrateOverlay" style="display:none;">
   <div class="overlay-content">
@@ -1517,32 +1530,40 @@ function renderTasks() {
   }
   empty.style.display = 'none';
 
-  // Sort: active first, completed last
+  // Sort: daily (incomplete) → long → once (incomplete) → all completed
+  const typeOrder = { daily: 0, long: 1, once: 2 };
   const sorted = [...appData.tasks].sort((a, b) => {
     const aDone = (a.type === 'daily' || a.type === 'once') && a.completed;
     const bDone = (b.type === 'daily' || b.type === 'once') && b.completed;
     if (!aDone && bDone) return -1;
     if (aDone && !bDone) return 1;
+    if (!aDone && !bDone) return (typeOrder[a.type] || 1) - (typeOrder[b.type] || 1);
     return 0;
   });
 
   const typeLabels = { daily: '每日', long: '长期', once: '' };
+  const typeColors = { daily: 'border-left:3px solid #56c596;', long: 'border-left:3px solid #4fc3f7;', once: '' };
+  const typeBadgeColors = { daily: '#56c596', long: '#4fc3f7', once: '#99b898' };
+
   list.innerHTML = sorted.map(t => {
     const isDone = (t.type === 'daily' || t.type === 'once') && t.completed;
     const isPenalty = t.points < 0;
     const cls = isDone ? 'task-item completed' : 'task-item';
+    const typeBorder = isDone ? '' : (typeColors[t.type] || '');
+    const typeLabel = typeLabels[t.type] || '';
+    const typeBadgeColor = typeBadgeColors[t.type] || '#88b888';
     const btnBg = isPenalty ? 'background:#ffcdd2;border-color:#ef9a9a;' : 'background:#ffe082;border-color:#ffcc02;';
     const btnIcon = isDone ? '✅' : isPenalty ? '🔻' : '➕';
-    const typeLabel = typeLabels[t.type] || '';
     const ptsText = isDone
       ? (t.type === 'once' ? '已完成' : '今日已完成')
       : ('每次 ' + (t.points >= 0 ? '+' : '') + t.points + ' 积分');
     const ptsColor = isPenalty ? 'color:#c62828;' : '';
+    const rowBg = isDone ? '' : (isPenalty ? 'background:#fff5f5;' : '');
     return `
-    <li class="${cls}" onclick="completeTask('${t.id}', event)" style="${isDone ? 'pointer-events:none;' : ''}">
+    <li class="${cls}" onclick="confirmTask('${t.id}', event)" style="${isDone ? 'pointer-events:none;' : ''}${typeBorder}${rowBg}">
       <div class="task-checkbox" style="${isDone ? '' : btnBg}">${btnIcon}</div>
       <div class="task-info">
-        <div class="task-name">${escHtml(t.name)}${typeLabel ? ' <span style="font-size:0.7em;color:#88b888;">' + typeLabel + '</span>' : ''}</div>
+        <div class="task-name">${escHtml(t.name)}${typeLabel ? ' <span style="font-size:0.7em;color:' + typeBadgeColor + ';">' + typeLabel + '</span>' : ''}</div>
         <div class="task-points" style="${ptsColor}">${ptsText}</div>
       </div>
       <div class="task-star">${isPenalty ? '⚡' : '⭐'}</div>
@@ -1566,6 +1587,21 @@ function escHtml(s) {
 }
 
 // ==================== TASK ACTIONS ====================
+let pendingTaskId = null;
+let pendingEvent = null;
+
+function confirmTask(taskId, e) {
+  const task = appData.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  pendingTaskId = taskId;
+  pendingEvent = e;
+  const ptsStr = (task.points >= 0 ? '+' : '') + task.points;
+  document.getElementById('confirmIcon').textContent = task.points < 0 ? '⚡' : '⭐';
+  document.getElementById('confirmTitle').textContent = '确定完成？';
+  document.getElementById('confirmText').textContent = '「' + task.name + '」 ' + ptsStr + ' 积分';
+  document.getElementById('confirmOverlay').style.display = 'flex';
+}
+
 function completeTask(taskId, e) {
   const task = appData.tasks.find(t => t.id === taskId);
   if (!task) return;
@@ -2176,6 +2212,28 @@ document.getElementById('importFile').addEventListener('change', function() {
 
 document.getElementById('btnCelebrateClose').addEventListener('click', () => {
   document.getElementById('celebrateOverlay').style.display = 'none';
+});
+
+// Confirm dialog buttons
+document.getElementById('btnConfirmOk').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  if (pendingTaskId && pendingEvent) {
+    completeTask(pendingTaskId, pendingEvent);
+    pendingTaskId = null;
+    pendingEvent = null;
+  }
+});
+document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  pendingTaskId = null;
+  pendingEvent = null;
+});
+document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+  if (e.target === this) {
+    this.style.display = 'none';
+    pendingTaskId = null;
+    pendingEvent = null;
+  }
 });
 
 // Close overlay on click outside
